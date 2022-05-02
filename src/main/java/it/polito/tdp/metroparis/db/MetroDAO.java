@@ -69,6 +69,55 @@ public class MetroDAO {
 		return linee;
 	}
 
-	
+	/**
+	 * esiste almeno una connessione tra partenza ed arrivo?
+	 * @param partenza
+	 * @param arrivo
+	 * @return
+	 */
+	public boolean isFermateConnesse(Fermata partenza, Fermata arrivo) {
+		String sql = "SELECT COUNT(*) AS cnt "
+				+ "FROM connessione "
+				+ "WHERE id_stazP=? "
+				+ "AND id_stazA=? " ;
+		Connection conn = DBConnect.getConnection() ;
+		try {
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			st.setInt(1, partenza.getIdFermata());
+			st.setInt(2, arrivo.getIdFermata());
+			ResultSet res = st.executeQuery();
+			res.first();
+			int count = res.getInt("cnt");
+			conn.close();
+			return count>0 ;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new RuntimeException("Errore Database", e);
+		}
+		
+	}
+
+	public List<Integer> getIdFermateConnesse(Fermata partenza) {
+		String sql = "SELECT id_stazA "
+				+ "FROM connessione "
+				+ "WHERE id_stazP=? "
+				+ "GROUP BY id_stazA" ;
+		Connection conn = DBConnect.getConnection() ;
+		try {
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, partenza.getIdFermata());
+			ResultSet res = st.executeQuery();
+			List<Integer>result = new ArrayList<Integer>();
+			while(res.next()) {
+				result.add(res.getInt("id_stazA"));
+			}
+			conn.close();
+			return result ;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null ;
+		}
+		
+	}
 
 }
