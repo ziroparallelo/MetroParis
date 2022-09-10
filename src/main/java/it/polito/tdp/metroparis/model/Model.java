@@ -28,6 +28,8 @@ public class Model {
 		this.fermate = new ArrayList<Fermata>();
 	}
 	
+	//Il prima possibile devo costruirmi l'Identity MAP
+	
 	public List<Fermata> getFermate(){
 
 		if(this.fermate == null || this.fermate.size()==0) {
@@ -57,6 +59,8 @@ public class Model {
 		}
 		return percorso;
 	}
+	
+	//Devo avere un metodo per la creazione del grafo
 	
 	public void creaGrafo() {
 		
