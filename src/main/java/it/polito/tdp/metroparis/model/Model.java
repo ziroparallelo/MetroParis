@@ -26,13 +26,14 @@ public class Model {
 	public Model() {
 		this.dao = new MetroDAO();
 		this.fermate = new ArrayList<Fermata>();
-		Map<Integer, Fermata> fermateIdMap = new HashMap<Integer, Fermata>();
 	}
+	
 	public List<Fermata> getFermate(){
 
 		if(this.fermate == null || this.fermate.size()==0) {
 		this.fermate = dao.getAllFermate();
 		}
+		this.fermateIdMap = new HashMap<Integer, Fermata>();
 		
 		for(Fermata f:this.fermate) {
 			this.fermateIdMap.put(f.getIdFermata(), f);
@@ -41,105 +42,32 @@ public class Model {
 		return fermate;
 	}
 	
-//	public List<Fermata> calcolaPercorso(Fermata partenza, Fermata arrivo){
-//		creaGrafo();
-//	}
+	public List<Fermata> calcolaPercorso(Fermata partenza, Fermata arrivo){
+		creaGrafo();
+		Map<Fermata, Fermata> alberoInverso = visitaGrafo(partenza);
+		
+		Fermata corrente = arrivo;
+		List<Fermata> percorso = new ArrayList<Fermata>();
+		while(corrente != null) {
+
+			//Questo medoto add con int aggiunge gli elementi e poi li schifta
+			//l'ultimo avrà posizione zero
+			percorso.add(0, corrente);
+			corrente = alberoInverso.get(corrente);
+		}
+		return percorso;
+	}
+	
 	public void creaGrafo() {
 		
 		//Grafo riparte con i dati puliti se l'utente da ripartire l'interfaccia con nuovi dati
 		//per questo lo inizializzo qui
+		
 		this.grafo = new SimpleDirectedGraph<Fermata, DefaultEdge>(DefaultEdge.class);
 		
 		
 		
 		Graphs.addAllVertices(this.grafo, getFermate());
-		
-		//Tra due fermate c'è un arco se esiste almeno una linea che li collega
-		//Non posso fare tutti questi accessi perché richiederebbe troppo tempo
-		
-		//METODO 1: SOLUZIONE SEMPLICE, ITERO SU OGNI COPPIA DI VERTICE
-		
-//		FACCIO 619*619 QUERY
-		
-		
-//		for(Fermata partenza: fermate) 
-//			for(Fermata arrivo: fermate) 
-//				if(dao.isFermateConnesse(partenza, arrivo))
-//					this.grafo.addEdge(partenza, arrivo);
-		
-//		Posso concentrarmi su un vertice alla volta chidendo quali sono tutti gli
-//		archi uscenti da tale fermata
-		
-		//METODO 2A: Dato ciascun vertice, trova i vertici adiacenti
-		//Il dao resituisce la chiave e devo ripescare io l'oggetto
-		
-//		Faccio solo 619 QUERY
-		
-		
-		
-//		for(Fermata partenza: fermate) {
-//			List<Integer> idConnesse = dao.getIdFermateConnesse(partenza);
-//			for(Integer id: idConnesse) {
-				
-				//OGGETTO FERMATA FAKE
-				
-				//Mi basterebbe l'oggetto solo con l'id e gli altri attributi null
-				//Poiché potrei sfruttare l'hashcode e l'equals dell'oggetto che
-				//è sufficiente per agganciare l'arco poiché l'oggetto Fermata
-				//è già presente nel mio grafo
-				
-				//POSSO ITERARE SU FERMATE PERCHE' LO CHIAMO PRIMA QUESTA STRUTTURA
-				//OPPURE SU this.grafo.vertexSet()
-//				Fermata arrivo = null;
-//				for(Fermata f: fermate) {
-//					if(f.getIdFermata()==id)
-//					{
-//						arrivo = f;
-//						break;
-//					}
-//				}
-				//Lo cerco nella struttura dati che già ho tra le fermate
-//				this.grafo.addEdge(partenza, arrivo);
-//			}
-//		}
-		
-		//METODO 2B: Dato ciascun vertice, trova i vertici adiacenti
-		//Il dao resituisce l'oggetto stesso FERMATA
-		
-//		for(Fermata partenza: fermate) {
-//			List<Fermata> arrivi = dao.getFermataConnesse(partenza);
-//			for(Fermata arrivo: arrivi)
-//				this.grafo.addEdge(partenza, arrivo);
-			
-			//sto passando al grafo degli oggetti uguali a quelli che contiene
-			//l'oggetto arrivo il grafo lo vede come un oggetto esterno ma lo
-			//riconosce come un oggetto uguale ad uno che possiede
-//		}
-				
-		//METODO 2C: Dato ciascun vertice, trova i vertici adiacenti
-		//Il dao resituisce la chiave ed uso una mappa conoscendo la chiave
-
-		//Mi creo una mappa all'interno del metodo
-		
-//		-> Identity Map
-		
-//		for(Fermata partenza: fermate) {
-//			List<Integer> idConnesse = dao.getIdFermateConnesse(partenza);
-//			for(int id: idConnesse) {
-//				Fermata arrivo = fermateIdMap.get(id);
-//				this.grafo.addEdge(partenza, arrivo);
-//			}
-//		}
-		
-		
-//		-> Fino a qui faccio N quesry
-		
-		//METODO 3: Faccio UNA SOLA QUERY che mi restituisce le coppie
-		//di fermate da collegare
-//		-> Identity Map
-		
-		//Devo crearmi una classe apposta (delego quasi tutto il lavoro al DB)
-		//poiché con la Mappa la conversione da Id a mappa è veloce
 		
 		List<CoppiaId> fermateDaCollegare = dao.getIdAllFermateConnesse();
 		for(CoppiaId coppia: fermateDaCollegare) {
@@ -149,21 +77,41 @@ public class Model {
 		
 		
 		
-		System.out.println(this.grafo);
-		System.out.println("Vertici = "+this.grafo.vertexSet().size()); 
-		System.out.println("Archi = "+this.grafo.edgeSet().size()); 
+//		System.out.println(this.grafo);
+//		System.out.println("Vertici = "+this.grafo.vertexSet().size()); 
+//		System.out.println("Archi = "+this.grafo.edgeSet().size()); 
 		
-		visitaGrafo(fermate.get(0));		
+//		visitaGrafo(fermate.get(0));		
 	}
 	
-	public void visitaGrafo(Fermata partenza) {
+	//Mi creo l'albero inverso
+	
+	public Map<Fermata, Fermata> visitaGrafo(Fermata partenza) {
 		GraphIterator<Fermata, DefaultEdge> visita = 
-//				new BreadthFirstIterator<Fermata, DefaultEdge> (this.grafo, partenza);
-		new DepthFirstIterator<Fermata, DefaultEdge> (this.grafo, partenza);
+				new BreadthFirstIterator<Fermata, DefaultEdge> (this.grafo, partenza);
+		
+		Map<Fermata, Fermata> alberoInverso = new HashMap<Fermata, Fermata>();
+		
+		//Aggiungo la radice (che non ha il predecessore
+		alberoInverso.put(partenza, null);
+		
+		//Ci sto passando la mappa dove voglio che passi le informazioni che voglio
+		visita.addTraversalListener(new RegistraAlberoDiVisita(alberoInverso, this.grafo));
 		while(visita.hasNext()){
 			Fermata f = visita.next();
-			System.out.println(f);
+//			System.out.println(f);
 		}
+		
+		List<Fermata> percorso = new ArrayList<>();
+		
+		//Ho costruito una lista al contrario che contiene il percorso.
+		
+		return alberoInverso;
+//		fermata = arrivo; //Dall'albero inverso inizio dall'arrivo e arrivo alla partenza (prima di partenza c'è source null)
+//		while(fermata!== null) {
+//			fermata = alberoInverso.get(fermata);
+//			percorso.add(fermata);
+//		}
 	}
 
 }
