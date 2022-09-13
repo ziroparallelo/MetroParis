@@ -91,6 +91,8 @@ public class Model {
 	//Mi creo l'albero inverso
 	
 	public Map<Fermata, Fermata> visitaGrafo(Fermata partenza) {
+		
+		
 		GraphIterator<Fermata, DefaultEdge> visita = 
 				new BreadthFirstIterator<Fermata, DefaultEdge> (this.grafo, partenza);
 		
